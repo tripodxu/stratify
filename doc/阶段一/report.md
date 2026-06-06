@@ -9,61 +9,58 @@
 ### 1.1 TDD 工作流
 
 采用严格的红-绿-重构循环：
-
-`
-红灯 → 先写测试，断言预期行为（测试必然失败）
-绿灯 → 最小实现，让测试通过
-重构 → 保持测试通过的前提下优化代码
-`
+```
+红灯 -> 先写测试，断言预期行为（测试必然失败）
+绿灯 -> 最小实现，让测试通过
+重构 -> 保持测试通过的前提下优化代码
+```
 
 每个模块的开发顺序：
 
 | 顺序 | 模块 | 测试文件 | 测试数 | 说明 |
 |------|------|---------|--------|------|
-| 1 | gent.py | 	est_agent.py | 10 | Agent 数据结构，含校验与 max_class 追踪 |
-| 2 | ccumulation.py | 	est_accumulation.py | 9 | 积累公式 speed = env × (ge + hard) / 2 |
-| 3 | world.py | 	est_world.py | 14 | World 引擎，tick 循环，phase1() 工厂 |
-| 4 | stats.py | 	est_stats.py | 13 | 基尼系数、阶层分布、快照统计 |
-| 5 | — | 	est_phase1.py | 8 | 阶段一集成测试（端到端验证） |
+| 1 | agent.py | test_agent.py | 10 | Agent 数据结构，含校验与 max_class 追踪 |
+| 2 | accumulation.py | test_accumulation.py | 9 | 积累公式 speed = env x (ge + hard) / 2 |
+| 3 | world.py | test_world.py | 14 | World 引擎，tick 循环，phase1() 工厂 |
+| 4 | stats.py | test_stats.py | 13 | 基尼系数、阶层分布、快照统计 |
+| 5 | -- | test_phase1.py | 8 | 阶段一集成测试（端到端验证） |
 
 ### 1.2 代码架构
-
-`
+```
 src/stratify/
-├── agent.py          # Agent 类：cls, value, ge, hard, life, max_class, age, alive
-│                      # cls 属性 setter 自动追踪 max_class
-│                      # 构造时校验：cls≥0, ge>0, hard>0, life>0
-├── accumulation.py   # accumulation_speed(env, ge, hard) → float
-│                      # accumulate_value(current, speed) → float
-├── world.py          # World 类：管理 agent 列表，执行 tick 循环
-│                      # phase1() 工厂方法：预设阶段一参数
-│                      # _truncated_normal()：截断正态分布采样
-├── stats.py          # Snapshot 数据类（frozen）
-│                      # gini_coefficient() / class_distribution() / class_mean_values()
-│                      # compute_snapshot() → 完整快照
-├── visualize.py      # plot_class_distribution_stack()
-│                      # plot_gini_curve()
-│                      # plot_class_mean_value_curves()
-└── main.py           # CLI 入口：python -m stratify.main --ticks 1000
-`
++-- agent.py          # Agent 类：cls, value, ge, hard, life, max_class, age, alive
+|                      # cls 属性 setter 自动追踪 max_class
+|                      # 构造时校验：cls>=0, ge>0, hard>0, life>0
++-- accumulation.py   # accumulation_speed(env, ge, hard) -> float
+|                      # accumulate_value(current, speed) -> float
++-- world.py          # World 类：管理 agent 列表，执行 tick 循环
+|                      # phase1() 工厂方法：预设阶段一参数
+|                      # _truncated_normal()：截断正态分布采样
++-- stats.py          # Snapshot 数据类（frozen）
+|                      # gini_coefficient() / class_distribution() / class_mean_values()
+|                      # compute_snapshot() -> 完整快照
++-- visualize.py      # plot_class_distribution_stack()
+|                      # plot_gini_curve()
+|                      # plot_class_mean_value_curves()
++-- main.py           # CLI 入口：python -m stratify.main --ticks 1000
+```
 
 ### 1.3 测试覆盖
-
-`
+```
 $ python -m pytest tests/ -v
 
-tests/test_accumulation.py  ✓ 9 passed
-tests/test_agent.py         ✓ 10 passed
-tests/test_phase1.py        ✓ 8 passed
-tests/test_stats.py         ✓ 13 passed
-tests/test_world.py         ✓ 14 passed
+tests/test_accumulation.py  OK 9 passed
+tests/test_agent.py         OK 10 passed
+tests/test_phase1.py        OK 8 passed
+tests/test_stats.py         OK 13 passed
+tests/test_world.py         OK 14 passed
 
 ============================== 54 passed in 0.51s ==============================
-`
+```
 
 关键测试用例：
 
-- **边界校验**：cls<0、ge≤0、hard≤0、life≤0 均抛出 ValueError
+- **边界校验**：cls<0、ge<=0、hard<=0、life<=0 均抛出 ValueError
 - **max_class 追踪**：提升时更新，下降时不降，多次变动记录最高值
 - **公式对称性**：ge 和 hard 对称贡献（ge=3,hard=7 等于 ge=7,hard=3）
 - **阶层溢价**：相同属性的人，高阶层积累速度严格按 env 比例
@@ -91,22 +88,21 @@ tests/test_world.py         ✓ 14 passed
 | ge 分布 | N(5, 2)，截断 [1, 10] | 天赋正态分布 |
 | hard 分布 | N(5, 2)，截断 [1, 10] | 努力正态分布 |
 | 初始 class | 均匀分布（每层 200 人） | 观察自然分化 |
-| 积累公式 | speed = env × (ge + hard) / 2 | 算术平均 |
+| 积累公式 | speed = env x (ge + hard) / 2 | 算术平均 |
 | cross 值 | 不启用 | 不可跨层 |
 | 竞争 | 不启用 | 无资源转移 |
 | 寿命 | 不启用 | 无死亡 |
-| 模拟时长 | 1000 tick | — |
+| 模拟时长 | 1000 tick | -- |
 | 随机种子 | 42 | 可复现 |
 
 ### 2.3 积累公式
+```
+每 tick 积累速度 = env(cls) x (ge + hard) / 2
+```
 
-`
-每 tick 积累速度 = env(cls) × (ge + hard) / 2
-`
-
-- env：由阶层决定，Class 0 = 1.0，Class 4 = 6.0
-- ge：出生时随机，N(5, 2) 截断 [1, 10]
-- hard：出生时随机，N(5, 2) 截断 [1, 10]
+- `env`：由阶层决定，Class 0 = 1.0，Class 4 = 6.0
+- `ge`：出生时随机，N(5, 2) 截断 [1, 10]
+- `hard`：出生时随机，N(5, 2) 截断 [1, 10]
 
 这意味着：
 - 一个 Class 4 的平庸者（ge=5, hard=5）每 tick 积累 30.0
@@ -121,7 +117,7 @@ tests/test_world.py         ✓ 14 passed
 
 | Tick | 总 Value | 基尼系数 | Class 0 均值 | Class 4 均值 | 倍率 |
 |------|----------|---------|-------------|-------------|------|
-| 0 | 0.0 | 0.0000 | 0.0 | 0.0 | — |
+| 0 | 0.0 | 0.0000 | 0.0 | 0.0 | -- |
 | 1 | 14,575.6 | 0.3674 | 5.0 | 28.5 | 5.70x |
 | 10 | 145,755.7 | 0.3674 | 49.9 | 284.6 | 5.70x |
 | 100 | 1,457,557.1 | 0.3674 | 499.3 | 2,846.3 | 5.70x |
@@ -161,7 +157,7 @@ tests/test_world.py         ✓ 14 passed
 
 **观察：** 基尼系数从第一个 tick 起即稳定在 0.3674，此后完全不变。
 
-**数学解释：** 所有个体从 value=0 出发，每 tick 按固定速度积累。Value 分布的形状在第一个 tick 就已确定（由 env × (ge+hard)/2 的分布决定），此后只是等比放大。相对分布不变，基尼系数自然恒定。
+**数学解释：** 所有个体从 value=0 出发，每 tick 按固定速度积累。Value 分布的形状在第一个 tick 就已确定（由 env x (ge+hard)/2 的分布决定），此后只是等比放大。相对分布不变，基尼系数自然恒定。
 
 这意味着：**纯积累系统中，不平等在出生时就已注定，不会随时间恶化，也不会改善。**
 
@@ -187,7 +183,7 @@ tests/test_world.py         ✓ 14 passed
 
 ![阶层溢价散点图](class_premium_scatter.png)
 
-**观察：** 筛选 ge≈5、hard≈5 的相似个体，他们在不同阶层的 Value 呈完美阶梯状。相同努力、相同天赋的人，仅因出身不同，最终财富差距达 5.7 倍。
+**观察：** 筛选 ge 约 5、hard 约 5 的相似个体，他们在不同阶层的 Value 呈完美阶梯状。相同努力、相同天赋的人，仅因出身不同，最终财富差距达 5.7 倍。
 
 ---
 
@@ -209,18 +205,13 @@ tests/test_world.py         ✓ 14 passed
 
 ### 发现 3：阶层溢价压过个体差异
 
-Class 4 最差的人（ge+hard ≈ 2.0）的 Value 仍高于 Class 0 最好的人（ge+hard ≈ 20.0）。这是因为：
+Class 4 最低 Value（9,339）vs Class 0 最高 Value（8,179）。看似反直觉——Class 0 最好的人 ge+hard 可达 20，Class 4 最差的人 ge+hard 仅约 2，按公式计算 Class 0 应更高。
 
-`
-Class 4 最差: env=6.0 × (2.0/2) = 6.0/tick
-Class 0 最好: env=1.0 × (20.0/2) = 10.0/tick
-`
+实际数据如此的原因是**截断分布的尾部概率**：ge 和 hard 截断在 [1, 10]，Class 0 中 ge+hard 接近 20 的人极少（需要 ge 约 10 且 hard 约 10，概率极低），而 Class 4 中 ge+hard 接近 2 的人同样极少。在 200 人的样本中，两者的极端值恰好出现交叉。
 
-等等，这个计算显示 Class 0 最好仍然更高。让我重新看数据——实际上 Class 4 最低 9,339 vs Class 0 最高 8,179，差距来自 ge/hard 的截断分布：Class 4 中 ge+hard 极低的人很少（截断在 1.0），而 Class 0 中 ge+hard 极高的人也很少。
+> 阶层系数的乘数效应 + 属性分布的截断效应，共同使得「低层天花板 < 高层地板」在大概率下成立。
 
-> 阶层系数的乘数效应 + 属性分布的截断效应，共同使得「低层天花板 < 高层地板」成为可能。
-
-### 发现 4：硬努力的回报不对称
+### 发现 4：硬努力的回报对称但有隐性代价
 
 在纯积累中，ge 和 hard 的贡献完全对称（算术平均）。但现实中努力往往有代价（寿命损耗、精力消耗）。阶段五引入寿命系统后，高 hard 的人将面临「过劳折寿」的隐性惩罚，届时 hard 的净收益将低于 ge。
 
@@ -253,8 +244,7 @@ Class 0 最好: env=1.0 × (20.0/2) = 10.0/tick
 ---
 
 ## 八、运行方式
-
-`ash
+```bash
 # 安装依赖
 pip install -e .
 
@@ -266,10 +256,10 @@ python -m stratify.main --ticks 1000
 
 # 输出位置
 output/
-├── class_distribution.png
-├── gini_curve.png
-└── class_mean_values.png
-`
++-- class_distribution.png
++-- gini_curve.png
++-- class_mean_values.png
+```
 
 ---
 
